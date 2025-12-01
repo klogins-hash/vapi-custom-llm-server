@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Optional, List
 import os
 from dotenv import load_dotenv
@@ -34,11 +35,11 @@ async def chat_completions(
 ):
     """
     Vapi Custom LLM endpoint for chat completions.
-    
+
     This endpoint receives conversation context from Vapi and returns
     LLM-generated responses formatted according to Vapi's specification.
     Interactions are logged to the database.
-    
+
     Headers:
         authorization: Optional API key for authentication (if configured in Vapi)
     """
@@ -48,21 +49,21 @@ async def chat_completions(
             expected_key = os.getenv("VAPI_API_KEY", "")
             if expected_key and not authorization.startswith(f"Bearer {expected_key}"):
                 raise HTTPException(status_code=401, detail="Unauthorized")
-        
+
         # Build messages list
         messages = []
         user_message = None
-        
+
         # Add system prompt if provided
         if request.system_prompt:
             messages.append({"role": "system", "content": request.system_prompt})
-        
+
         # Add conversation history and capture last user message
         for msg in request.messages:
             messages.append({"role": msg.role, "content": msg.content})
             if msg.role == "user":
                 user_message = msg.content
-        
+
         # Call OpenAI API
         response = openai.ChatCompletion.create(
             model=request.model,
@@ -70,10 +71,10 @@ async def chat_completions(
             temperature=request.temperature,
             max_tokens=request.max_tokens,
         )
-        
+
         assistant_response = response.choices[0].message.content
         total_tokens = response.usage.total_tokens
-        
+
         # Log interaction to database
         try:
             interaction = LLMInteraction(
@@ -89,7 +90,7 @@ async def chat_completions(
             print(f"Database logging error: {db_error}")
             # Don't fail the request if database logging fails
             db.rollback()
-        
+
         # Format response according to Vapi's expected structure
         return ChatCompletionResponse(
             choices=[{
@@ -123,7 +124,7 @@ async def chat_completions(
             db.commit()
         except:
             db.rollback()
-        
+
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
@@ -148,7 +149,7 @@ async def get_interaction_stats(db: Session = Depends(get_db)):
     """Get statistics about LLM interactions"""
     total = db.query(LLMInteraction).count()
     total_tokens = db.query(func.sum(LLMInteraction.tokens_used)).scalar() or 0
-    
+
     return {
         "total_interactions": total,
         "total_tokens_used": total_tokens,
