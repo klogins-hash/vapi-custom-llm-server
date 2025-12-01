@@ -10,6 +10,9 @@ A FastAPI server for integrating custom LLM models with Vapi. This server implem
 - ✅ Optional API Key authentication
 - ✅ Health check endpoint
 - ✅ Automatic API documentation (Swagger UI)
+- ✅ Database support with SQLAlchemy (SQLite for local, PostgreSQL for production)
+- ✅ Automatic LLM interaction logging and persistence
+- ✅ Volume mounting for data persistence
 
 ## Prerequisites
 
@@ -146,13 +149,172 @@ To use a different LLM provider:
 2. Ensure your response matches the expected format
 3. Update `requirements.txt` with your provider's SDK
 
+## Database Support
+
+This server includes built-in database support for storing and querying LLM interactions.
+
+### Database Options
+
+**SQLite (Local Development)**
+- Default option for local development
+- File-based, no server setup required
+- Data stored in `vapi_custom_llm.db`
+- Perfect for testing and small-scale deployments
+
+**PostgreSQL (Production)**
+- Recommended for production deployments
+- Persistent data with full ACID compliance
+- Supports concurrent access
+- Easy scaling capabilities
+
+### Local Development with Docker Compose
+
+To use PostgreSQL locally with docker-compose:
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and set DATABASE_URL to PostgreSQL connection
+# DATABASE_URL=postgresql+psycopg2://vapi:vapi@postgres:5432/vapi_db
+
+# Start PostgreSQL and the app
+docker-compose up -d
+
+# Access the app at http://localhost:8000
+```
+
+The docker-compose setup includes:
+- FastAPI application (port 8000)
+- PostgreSQL database (port 5432)
+- Automatic volume mounting for data persistence
+- Health checks and restart policies
+
+### Database Schema
+
+**LLMInteraction Table:**
+```sql
+CREATE TABLE llm_interactions (
+    id INTEGER PRIMARY KEY,
+    user_message TEXT NOT NULL,
+    assistant_response TEXT,
+    model VARCHAR(255) DEFAULT 'gpt-3.5-turbo',
+    temperature FLOAT DEFAULT 0.7,
+    tokens_used INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Database API Endpoints
+
+#### GET /interactions
+Retrieve recent LLM interactions
+
+**Query Parameters:**
+- `limit`: Number of records to return (default: 100, max: 100)
+- `offset`: Pagination offset (default: 0)
+
+**Example:**
+```bash
+curl "http://localhost:8000/interactions?limit=10&offset=0"
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "user_message": "Hello, how are you?",
+    "assistant_response": "I'm doing well, thank you for asking!",
+    "model": "gpt-3.5-turbo",
+    "tokens_used": 25,
+    "created_at": "2024-12-01T10:30:00"
+  }
+]
+```
+
+#### GET /interactions/stats
+Get statistics about LLM interactions
+
+**Response:**
+```json
+{
+  "total_interactions": 150,
+  "total_tokens_used": 5230,
+  "average_tokens_per_interaction": 35
+}
+```
+
+### Railway Deployment with PostgreSQL
+
+When deploying on Railway:
+
+1. **Add PostgreSQL Add-on**
+   - In Railway dashboard, click "Add Plugin"
+   - Select "PostgreSQL"
+   - Railway automatically injects `DATABASE_URL` environment variable
+
+2. **Volume Configuration**
+   - Railway handles persistent storage automatically with PostgreSQL add-on
+   - No additional configuration needed
+
+3. **Environment Variables**
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `DATABASE_URL`: Auto-injected by Railway (PostgreSQL)
+
+### Volume Mounting for Data Persistence
+
+**Local Development (SQLite):**
+```bash
+# SQLite database is created in the working directory
+# ./vapi_custom_llm.db
+```
+
+**Docker Compose (PostgreSQL):**
+```yaml
+volumes:
+  postgres_data:
+    # Named volume persists PostgreSQL data between container restarts
+```
+
+**Railway (PostgreSQL):**
+- Data automatically persisted in Railway's managed PostgreSQL instance
+- No manual volume configuration needed
+
+### Backing Up Your Data
+
+**SQLite:**
+```bash
+# Simple file copy backup
+cp vapi_custom_llm.db vapi_custom_llm.db.backup
+```
+
+**PostgreSQL (local):**
+```bash
+# Using docker exec
+docker exec postgres_container pg_dump -U vapi vapi_db > backup.sql
+
+# Restore from backup
+docker exec -i postgres_container psql -U vapi vapi_db < backup.sql
+```
+
+**Railway PostgreSQL:**
+- Use Railway dashboard to manage backups
+- PostgreSQL is automatically backed up by Railway
+- See [Railway Backups Documentation](https://docs.railway.app/databases/postgresql)
+
 ## Troubleshooting
 
 - **401 Unauthorized**: Check your API key authentication settings
 - **500 Internal Server Error**: Verify your OpenAI API key is valid
 - **Connection timeout**: Ensure ngrok tunnel is running and URL is correct
+- **Database connection error**: Verify DATABASE_URL is correct in .env file
+- **SQLAlchemy import errors**: Run `pip install -r requirements.txt` to ensure all dependencies are installed
 
 ## References
+
 
 - [Vapi Custom LLM Documentation](https://docs.vapi.ai/customization/custom-llm/using-your-server)
 - [OpenAI API Documentation](https://platform.openai.com/docs/api-reference)
