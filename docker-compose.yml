@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - VAPI_API_KEY=${VAPI_API_KEY}
+      - DATABASE_URL=postgresql://vapi:vapi@postgres:5432/vapi_db
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=vapi
+      - POSTGRES_PASSWORD=vapi
+      - POSTGRES_DB=vapi_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
