@@ -158,3 +158,56 @@ To use a different LLM provider:
 - [OpenAI API Documentation](https://platform.openai.com/docs/api-reference)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 
+
+## Deployment on Railway
+
+Railway makes it easy to deploy this FastAPI server. Follow these steps:
+
+### 1. Connect Your GitHub Repository
+- Go to [Railway.app](https://railway.app)
+- Click "New Project"
+- Select "Deploy from GitHub"
+- Authorize Railway and select the `vapi-custom-llm-server` repository
+
+### 2. Configure Environment Variables
+In the Railway dashboard:
+1. Go to your project settings
+2. Add environment variables:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `VAPI_API_KEY`: (Optional) Your Vapi API key for authentication
+
+### 3. Deploy
+Railway will automatically detect the Dockerfile and deploy your application. You'll get a public URL like:
+```
+https://vapi-custom-llm-server-production.up.railway.app
+```
+
+### 4. Configure Vapi
+Use the Railway URL (without trailing slash) in your Vapi dashboard:
+```
+https://vapi-custom-llm-server-production.up.railway.app
+```
+
+### Railway Features Included
+- ✅ Dockerfile for containerized deployment
+- ✅ Procfile for flexible start command
+- ✅ railway.json for Railway-specific configuration
+- ✅ .dockerignore to keep image size small
+- ✅ Automatic environment variable handling (PORT)
+- ✅ Auto-scaling support
+- ✅ Health checks compatible
+
+### Monitoring on Railway
+Railway provides:
+- Real-time logs
+- Deployment history
+- Resource usage metrics
+- Automatic restarts on failure
+
+### Setting Custom Domain (Optional)
+In Railway dashboard:
+1. Go to Settings
+2. Add your custom domain
+3. Configure DNS pointing to Railway
+
+For more information, see [Railway Documentation](https://docs.railway.app)
