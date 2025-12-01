@@ -266,22 +266,63 @@ When deploying on Railway:
 
 ### Volume Mounting for Data Persistence
 
-**Local Development (SQLite):**
+**Mount Paths Overview:**
+
+| Scenario | Database | Container Mount | Host Mount | Volume Name |
+|----------|----------|-----------------|-----------|------------|
+| Local Dev | SQLite | `/app/data` | `./data` | N/A |
+| Docker Compose | PostgreSQL | `/var/lib/postgresql/data` | Named volume | `postgres_data` |
+| Docker Compose | SQLite (optional) | `/app/data` | Named volume | `app_data` |
+| Railway | PostgreSQL | Auto-managed | Auto-managed | N/A |
+
+**Local Development (SQLite - Direct Python):**
 ```bash
-# SQLite database is created in the working directory
-# ./vapi_custom_llm.db
+# SQLite database stored in /app/data directory
+# Default path: /app/data/vapi_custom_llm.db
+python main.py
+# Database file created at ./vapi_custom_llm.db (relative to working directory)
 ```
 
-**Docker Compose (PostgreSQL):**
+**Docker Compose (PostgreSQL with Named Volumes):**
 ```yaml
 volumes:
+  app_data:
+    # Mounts to /app/data inside container
+    # Persists SQLite database between restarts (if using SQLite)
+    driver: local
   postgres_data:
-    # Named volume persists PostgreSQL data between container restarts
+    # Mounts to /var/lib/postgresql/data inside PostgreSQL container
+    # Persists all PostgreSQL data between restarts
+    driver: local
 ```
 
-**Railway (PostgreSQL):**
-- Data automatically persisted in Railway's managed PostgreSQL instance
+**Railway (PostgreSQL - Managed):**
+- PostgreSQL add-on provides managed `/var/lib/postgresql/data` mounting
+- Data automatically persisted and backed up by Railway
 - No manual volume configuration needed
+- `DATABASE_URL` environment variable auto-injected
+
+**Custom Mount Path Configuration:**
+
+If you want to use a different mount path, update docker-compose.yml:
+```yaml
+volumes:
+  app_data:
+  postgres_data:
+
+services:
+  app:
+    volumes:
+      - app_data:/custom/path  # Change /custom/path as needed
+  postgres:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/custom
+```
+
+Then update DATABASE_URL in .env to match:
+```bash
+DATABASE_URL=sqlite:////custom/path/vapi_custom_llm.db
+```
 
 ### Backing Up Your Data
 

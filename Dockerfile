@@ -9,8 +9,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create data directory for SQLite (if using SQLite)
-RUN mkdir -p /app/data
+# Create data directory for SQLite with proper permissions
+# This directory will be used for SQLite database when mounted
+RUN mkdir -p /app/data && chmod 755 /app/data
 
 # Expose port (Railway will override with $PORT)
 EXPOSE 8000

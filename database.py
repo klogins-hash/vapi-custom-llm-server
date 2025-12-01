@@ -5,9 +5,11 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
 # Database URL configuration
+# For SQLite: Use mounted volume at /app/data for persistence
+# For PostgreSQL: Use DATABASE_URL environment variable (auto-injected by Railway)
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./vapi_custom_llm.db"
+    "sqlite:////app/data/vapi_custom_llm.db"
 )
 
 # Handle PostgreSQL connection string format from Railway
@@ -28,7 +30,7 @@ Base = declarative_base()
 class LLMInteraction(Base):
     """Store LLM interaction logs"""
     __tablename__ = "llm_interactions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_message = Column(Text, nullable=False)
     assistant_response = Column(Text, nullable=True)

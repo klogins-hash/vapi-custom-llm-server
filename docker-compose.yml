@@ -10,9 +10,18 @@ services:
       - VAPI_API_KEY=${VAPI_API_KEY}
       - DATABASE_URL=postgresql://vapi:vapi@postgres:5432/vapi_db
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
-      - ./data:/app/data
+      # Mount /app/data for SQLite database persistence (if not using PostgreSQL)
+      - app_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
@@ -21,9 +30,19 @@ services:
       - POSTGRES_PASSWORD=vapi
       - POSTGRES_DB=vapi_db
     volumes:
+      # Mount PostgreSQL data for persistence
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vapi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
+  app_data:
+    driver: local
   postgres_data:
+    driver: local
