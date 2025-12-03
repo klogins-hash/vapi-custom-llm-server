@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import Optional, List
 import os
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 
 from database import init_db, get_db, LLMInteraction
 from models import ChatCompletionRequest, ChatCompletionResponse, InteractionResponse, Message
@@ -17,15 +17,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+
 # Initialize database on startup
 @app.on_event("startup")
 def startup_event():
     """Initialize database on application startup"""
+    global openai_client
     init_db()
-    openai.api_key = os.getenv("OPENAI_API_KEY", "")
-
-# Configure OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY", "")
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
 @app.post("/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completions(
@@ -65,7 +66,7 @@ async def chat_completions(
                 user_message = msg.content
 
         # Call OpenAI API
-        response = openai.ChatCompletion.create(
+        response = openai_client.chat.completions.create(
             model=request.model,
             messages=messages,
             temperature=request.temperature,
